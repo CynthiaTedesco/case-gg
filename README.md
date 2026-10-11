@@ -54,6 +54,15 @@ The full reasoning for each is in [DECISIONS.md](DECISIONS.md).
 - **Enforce the roles on the server.** With real identity (separate owner and giver share
   links, or login), the role would come from the link instead of a question, and the server
   would make sure only the owner adds items and never sends the owner reservations.
+- **Fill in items from their link.** Pull the image and price from the product page, where it
+  has them, so the owner only has to paste a link.
+- **Make "just reserved by someone else" more prominent.** Today the row just changes on
+  the next poll.
+- **Keep rows reserved by others visible for a moment under the filter.** Mine stay put, but if
+  someone else reserves something while you're looking at "Only unreserved", it disappears
+  without explanation. A brief "just reserved" state before removal would be kinder.
+- **Show "View item" inside the app**, in a modal or an iframe, instead of sending people out to
+  an external browser.
 - **TanStack Query** for the data layer. It provides caching, retries, focus refetching and
   optimistic updates. I wrote it by hand here so the mechanics are visible and testable. In a
   production app I'd use the library rather than maintain my own.
@@ -84,8 +93,6 @@ The full reasoning for each is in [DECISIONS.md](DECISIONS.md).
 - **Silent background failures** mean the list can be stale for a while without saying so.
 - **One toast at a time.** Two quick events (a conflict, then a failed refresh) and the first
   message is replaced before you can read it.
-- **The keep-visible logic lives in the screen, not the reducer**, so it isn't covered by the
-  reducer tests.
 - **The merge is conservative.** After you change an item, the next poll may keep your copy
   for one extra cycle (~15 s) even when the server's copy is just as fresh. That's the safe
   direction, but it isn't exact.
