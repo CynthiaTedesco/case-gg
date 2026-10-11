@@ -146,7 +146,9 @@ The mock API keeps its data in memory, so a reload resets the list itself too, a
 filter and sort while the data resets would be odd. The role is different: being asked "Is this your wishlist?" after every reload would be
 annoying, and the answer doesn't depend on the data. If storage fails, the app just asks again.
 
-## Platform notes
+## Technical notes
+
+These weren't ambiguities in the brief, but a reviewer might wonder about them.
 
 - `api.ts` calls `crypto.randomUUID()`, which Hermes (iOS/Android) doesn't provide, and which
   browsers only provide on secure origins. `src/polyfills.ts` fills it in from `expo-crypto`
