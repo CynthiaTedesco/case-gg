@@ -26,7 +26,6 @@ type Field = keyof AddItemForm;
 const EMPTY_FORM: AddItemForm = { title: '', price: '', url: '' };
 
 export function AddItemModal({ visible, onClose, onSubmit }: Props) {
-  // Closing without saving keeps the draft. Only a successful save clears it.
   const [form, setForm] = useState(EMPTY_FORM);
   const [touched, setTouched] = useState<Partial<Record<Field, boolean>>>({});
   const [submitAttempted, setSubmitAttempted] = useState(false);
@@ -47,8 +46,19 @@ export function AddItemModal({ visible, onClose, onSubmit }: Props) {
   };
   const blur = (field: Field) => () => setTouched((current) => ({ ...current, [field]: true }));
 
+  // Cancel (and Escape / Android back) means "never mind", so it starts the next add fresh.
+  // A failed save is different: the form stays open with the text kept, so nothing is lost.
+  const reset = () => {
+    setForm(EMPTY_FORM);
+    setTouched({});
+    setSubmitAttempted(false);
+    setSaveError(null);
+  };
+
   const close = () => {
-    if (!saving) onClose();
+    if (saving) return;
+    reset();
+    onClose();
   };
 
   const submit = async () => {
@@ -58,9 +68,7 @@ export function AddItemModal({ visible, onClose, onSubmit }: Props) {
     setSaveError(null);
     try {
       await onSubmit(result.value);
-      setForm(EMPTY_FORM);
-      setTouched({});
-      setSubmitAttempted(false);
+      reset();
       onClose();
     } catch {
       setSaveError("Couldn't save the item. Your text is still here. Please try again.");

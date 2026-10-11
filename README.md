@@ -110,7 +110,8 @@ keep the default order, so rows don't jump around.
 - **URL:** optional. A missing scheme gets `https://` ("shop.dk/lamp" works). Only http(s) is
   accepted, which also keeps `javascript:` links off the page.
 - Errors appear when you leave a field or press Save, not on every keystroke.
-- Closing the form without saving keeps the draft. Only a successful save clears it.
+- Cancel clears the form, so the next add starts fresh. If saving fails, the form stays open
+  with everything you typed.
 
 **Prices** are shown in Danish format: `449 kr.`, `1.299 kr.`, `449,50 kr.`
 
