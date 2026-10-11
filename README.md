@@ -47,7 +47,6 @@ The full reasoning for each is in [DECISIONS.md](DECISIONS.md).
   and errors that name the actual problem.
 - **Prices** are shown in Danish format: `449 kr.`, `1.299 kr.`, `449,50 kr.`
 - **Filter and sort reset on reload; the role doesn't.**
-- **Platform notes:** a `crypto.randomUUID` polyfill for native, and no Expo Router.
 
 ## What I'd do with more time
 
@@ -63,6 +62,8 @@ The full reasoning for each is in [DECISIONS.md](DECISIONS.md).
   without explanation. A brief "just reserved" state before removal would be kinder.
 - **Show "View item" inside the app**, in a modal or an iframe, instead of sending people out to
   an external browser.
+- **A proper design pass.** The UI is clean but plain. It would look better with a stronger
+  visual identity: colour, typography, and a bit of warmth to suit a gift list.
 - **TanStack Query** for the data layer. It provides caching, retries, focus refetching and
   optimistic updates. I wrote it by hand here so the mechanics are visible and testable. In a
   production app I'd use the library rather than maintain my own.
