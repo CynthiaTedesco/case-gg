@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { WishItem } from '../api';
 import { AddItemModal } from '../components/AddItemModal';
+import { confirm } from '../components/confirm';
 import { ItemRow } from '../components/ItemRow';
 import { EmptyList, LoadError, SkeletonList } from '../components/ListStates';
 import { RolePicker } from '../components/RolePicker';
@@ -29,12 +30,26 @@ export function WishlistScreen() {
   const [keepVisible, setKeepVisible] = useState(NO_IDS);
   const [adding, setAdding] = useState(false);
 
-  // Without reservations on screen, the filter would hide items for no visible reason.
+  // Without reservations on screen, the filter would hide items for no visible reason. It's
+  // ignored rather than reset, so a giver's choice is still there after switching back.
   const filterOn = showReservations && onlyUnreserved;
   const items = useMemo(
     () => visibleItems(state.items, { onlyUnreserved: filterOn, sort, keepVisible }),
     [state.items, filterOn, sort, keepVisible],
   );
+
+  const switchView = useCallback(async () => {
+    if (role === 'owner') {
+      const ok = await confirm(
+        'Switch to the gift-giver view?',
+        "You'll see which gifts are reserved. If this is your list, that spoils the surprise.",
+        'Switch',
+      );
+      if (ok) setRole('giver');
+    } else {
+      setRole('owner');
+    }
+  }, [role, setRole]);
 
   const toggleUnreserved = useCallback(() => {
     setOnlyUnreserved((on) => !on);
@@ -88,6 +103,20 @@ export function WishlistScreen() {
                   ? `${countUnreserved(state.items)} of ${state.items.length} still available`
                   : `${state.items.length} ${state.items.length === 1 ? 'item' : 'items'} on your list`}
             </Text>
+            {role ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Viewing as ${role === 'owner' ? 'the owner' : 'a gift-giver'}. Switch view`}
+                onPress={switchView}
+                hitSlop={8}
+                className="mt-1 self-start active:opacity-70"
+              >
+                <Text className="text-sm text-zinc-500">
+                  Viewing as {role === 'owner' ? 'the owner' : 'a gift-giver'} ·{' '}
+                  <Text className="text-indigo-600 underline">Switch view</Text>
+                </Text>
+              </Pressable>
+            ) : null}
           </View>
           {ready ? (
             <View className="flex-row gap-2">

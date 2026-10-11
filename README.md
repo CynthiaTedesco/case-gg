@@ -24,7 +24,8 @@ npm run typecheck
 ```
 
 **Things to try:** the first screen asks whether the list is yours. Pick "No, I'm giving a gift"
-to reserve things. Reserve something and see it flip instantly. Wait 10–20 s and other people (Mette, Jonas, Farmor) will
+to reserve things, and use **Switch view** under the title to see the owner's side. Reserve
+something and see it flip instantly. Wait 10–20 s and other people (Mette, Jonas, Farmor) will
 start reserving and releasing items. Reload a few times to hit the API's 10 % load failure.
 
 ## How it's built
@@ -41,7 +42,7 @@ src/wishlist/
   useViewerRole.ts             the picked role, remembered with AsyncStorage
   format.ts                    price and name formatting
   WishlistScreen.tsx           the screen
-src/components/                ItemRow, Toolbar, AddItemModal, RolePicker, Toast,
+src/components/                ItemRow, Toolbar, AddItemModal, RolePicker, Toast, confirm,
                                loading/error/empty states
 ```
 
@@ -77,10 +78,14 @@ on iOS, Android and web, and in Expo Go).
   labels or dimmed rows, no "Only unreserved" filter, and "6 items on your list" instead of
   "3 of 6 still available". The surprise survives.
 - **Gift-giver:** sees and makes reservations, and has no **+ Add**.
+- **Switch view**, under the title, changes role. Going from owner to gift-giver asks first,
+  since it reveals what's reserved. The other way switches straight away. React Native's
+  `Alert` does nothing on web, so the question uses the browser's own dialog there.
 - What each role sees is one pure function (`viewFor`), and components get its flags
   (`canAdd`, `showReservations`), never the role, so they don't need to know roles exist.
 
-This is a convenience, not security (see _What I'm not happy with_).
+This is a convenience, not security: anyone can tap **Switch view** (see _What I'm not happy
+with_).
 
 **Reservations never say who made them.**
 This keeps the surprise for everyone. Other people's reservations show as just "Reserved": a
@@ -199,8 +204,8 @@ annoying, and the answer doesn't depend on the data. If storage fails, the app j
 ## What I'm not happy with
 
 - **The roles are on the honour system.** The owner view hides reservations, but the data still
-  reaches the device, and anyone can answer the first question either way. A gift-giver can
-  say the list is theirs and add items too. Both come down to the app not knowing who is
+  reaches the device, and **Switch view** is one tap (plus a warning) away. A gift-giver can
+  switch to the owner view and add items too. Both come down to the app not knowing who is
   looking, which needs login or per-role links, and both were out of scope for this exercise.
 - **Rows reserved by others still vanish under the filter.** Mine stay put, but if someone else
   reserves something while you're looking at "Only unreserved", it disappears without explanation. A brief
