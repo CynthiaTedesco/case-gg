@@ -1,0 +1,168 @@
+# Shared wishlist
+
+A single-screen Expo / React Native app for a shared wishlist. The wishlist owner adds the items
+they want; friends and family browse the list and reserve a gift so nobody doubles up. It runs
+on web, iOS and Android from the same code.
+
+## How to run it
+
+Requires a current Node LTS and npm.
+
+```bash
+npm install
+npm run web        # opens in the browser (the quickest way to review)
+npm run ios        # iOS simulator, or scan the QR code with Expo Go
+npm run android    # Android emulator, or scan the QR code with Expo Go
+```
+
+Every native module used is bundled in Expo Go, so no development build is needed.
+
+```bash
+npm test           # unit tests: validation, filter/sort, and the state reducer
+npm run lint
+npm run typecheck
+```
+
+**Things to try:** reserve something and see it flip instantly. Wait 10–20 s and other people
+(Mette, Jonas, Farmor) will start reserving and releasing items. Reload a few times to hit the
+API's 10 % load failure.
+
+## How it's built
+
+```
+src/api.ts                     the provided mock API (unchanged)
+src/polyfills.ts               crypto.randomUUID for native (see below)
+src/wishlist/
+  wishlistReducer.ts           all state transitions: load, optimistic reserve, rollback, merge
+  useWishlist.ts               calls the API, dispatches to the reducer, polls
+  selectors.ts                 filter + sort as pure functions of the list
+  validation.ts                add-item form rules
+  format.ts                    price and name formatting
+  WishlistScreen.tsx           the screen
+src/components/                ItemRow, Toolbar, AddItemModal, Toast, loading/error/empty states
+```
+
+State is one `useReducer`. The reducer is a pure function, so the tricky parts (rollback, conflicts,
+a stale poll arriving late) are unit-tested without rendering anything.
+
+## Decisions where the brief was ambiguous
+
+**Who is this for? One shared screen for the owner and the gift-givers.**
+The brief contradicts itself a little. It says the _owner_ adds items and _friends and family_
+reserve them, asks for an app that lets a _gift-giver_ use the list, and then requires adding
+items. With authentication and routing out of scope, the app can't tell who is looking, so
+everyone gets the same screen: the owner uses **+ Add**, gift-givers use **Reserve**. The cost is
+that the owner can see which gifts are reserved. Hiding that properly needs identity (see
+_What I'm not happy with_).
+
+**Reservations never say who made them.**
+Since the owner sees the same screen, other people's reservations show as just "Reserved", for
+everyone. No identity is needed for that, because every viewer is treated the same. Your own
+reservations still say "Reserved by you", since the API marks them with the current user. This
+keeps the _who_ from the owner, but not the _what_. It also costs givers some coordination
+("is Mette getting the lamp?"), which I think is the right trade for a gift list.
+
+**Reserving is optimistic; adding isn't.**
+Reserve flips the row to "Reserved by you" the moment you tap it. A small spinner on the button
+says it's still saving, and double taps are ignored. Adding waits for the server instead. The
+server assigns the id, adding is rare, and a fake item that then disappears is more confusing
+than a one-second "Saving…". If saving fails, the form keeps everything you typed.
+
+**"Someone else got there first" is not treated as an error.**
+`ConflictError` carries the item's current state, so the row immediately shows "Reserved" and
+a toast explains that someone got there just before you. There's no rollback to "available" and no retry button, because
+retrying can't succeed and the gift is covered. A network-type failure, by contrast, rolls back
+and offers **Try again**. `NotFoundError` removes the row with a note.
+
+**You can undo your own reservation.**
+The API has `unreserveItem`, and mis-taps happen. The undo is optimistic too.
+
+**The list keeps itself fresh.**
+The mock API simulates other users changing the list every 8–15 s, so a list loaded once goes
+stale fast. The app re-fetches every 15 s while it's in the foreground, and again when you come
+back to the app or tab. To stop a fetch from undoing your own changes, the merge keeps the
+local copy of any item that is still saving, or that was confirmed _after_ that fetch started.
+A small logical clock (a counter) orders those events. The tests cover the race cases.
+
+**Failures are loud only when you're waiting.**
+
+- First load fails: a full error state with **Try again**.
+- A refresh you asked for fails (button or pull-down): the list stays and a toast offers a retry.
+- A background poll fails: silent. With a 10 % failure rate, a toast every couple of minutes
+  would be noise, and the next poll is 15 s away.
+
+**"Only unreserved" doesn't make your row vanish.**
+If the filter is on and you reserve something, a strictly applied filter would remove the row
+under your finger, so you'd never see that it worked. Items you reserve stay visible until you
+next change the filter. Items reserved by _other people_ still disappear (see below).
+
+**Sorting:** Default (the list's own order, new items last), Price ↑ and Price ↓. Equal prices
+keep the default order, so rows don't jump around.
+
+**Add-item validation**
+
+- **Title:** required, trimmed, repeated spaces collapsed, max 100 characters.
+- **Price:** required, because the brief marks only the URL as optional and the API's
+  `priceMinor` is non-optional. Typed in kroner with `,` or `.` as decimal separator ("449",
+  "449,95", "449.95 kr"), up to 2 decimals, converted to øre with integer maths. Must be more
+  than 0 and at most 100.000 kr. (catches typos). Thousands separators are rejected on purpose:
+  "1.299" is 1299 kr. in Danish notation but 1.299 kr. in English.
+- **URL:** optional. A missing scheme gets `https://` ("shop.dk/lamp" works). Only http(s) is
+  accepted, which also keeps `javascript:` links off the page.
+- Errors appear when you leave a field or press Save, not on every keystroke.
+- Closing the form without saving keeps the draft. Only a successful save clears it.
+
+**Prices** are shown in Danish format: `449 kr.`, `1.299 kr.`, `449,50 kr.`
+
+**Filter and sort reset on reload.** That's deliberate: the mock API keeps its data in memory,
+so a reload resets the list itself too. Saving the view settings while the data resets would be
+odd.
+
+**Platform notes**
+
+- `api.ts` calls `crypto.randomUUID()`, which Hermes (iOS/Android) doesn't provide, and which
+  browsers only provide on secure origins. `src/polyfills.ts` fills it in from `expo-crypto`
+  without touching `api.ts`.
+- Errors are matched by `instanceof` with a fallback on `error.name`. Babel-compiled subclasses of
+  `Error` can fail `instanceof`, and the name is compared as a literal because minifiers rename
+  classes.
+- No Expo Router. The brief asks for a single page with no routing.
+
+## What I'd do with more time
+
+- **Separate owner and gift-giver views.** Even without real accounts, an owner view would hide
+  reservations entirely, with **+ Add** shown only there, and a giver view would hide **+ Add**.
+  This is still possible on a single page, since it's one piece of state deciding what's shown.
+  With real identity (separate owner and giver share links, or login), the server could also
+  enforce it, so only the owner can add items.
+- **TanStack Query** for the data layer. It provides caching, retries, focus refetching and
+  optimistic updates. I wrote it by hand here so the mechanics are visible and testable. In a
+  production app I'd use the library rather than maintain my own.
+- **Real-time updates** (WebSocket / SSE) instead of polling, if the backend supported it.
+- **Component and integration tests** with React Native Testing Library: the hook's polling
+  and AppState handling, and the form's error timing.
+- **Show freshness**: a quiet "Updated 2 min ago" when background polls keep failing.
+- **Save the view settings** in the URL on web and in AsyncStorage on native, once the data
+  outlives a reload.
+- Scroll to, or briefly highlight, a newly added item.
+- Accessibility pass with VoiceOver and TalkBack, and a check of the modal's focus handling on web.
+
+## What I'm not happy with
+
+- **There is no identity, so the surprise can be spoiled.** The owner sees the same screen as
+  the givers, so they can see which gifts are reserved, even though names are hidden. Nothing
+  stops a gift-giver from adding items to someone else's list either. Both come down to the app
+  not knowing who is looking, which needs login or per-role links. Both were out of scope for
+  this exercise.
+- **Rows reserved by others still vanish under the filter.** Mine stay put, but if someone else
+  reserves something while you're looking at "Only unreserved", it disappears without explanation. A brief
+  "just reserved" state before removal would be kinder.
+- **Silent background failures** mean the list can be stale for a while without saying so.
+- **One toast at a time.** Two quick events (a conflict, then a failed refresh) and the first
+  message is replaced before you can read it.
+- **The keep-visible logic lives in the screen, not the reducer**, so it isn't covered by the
+  reducer tests.
+- **The merge is conservative.** After you change an item, the next poll may keep your copy
+  for one extra cycle (~15 s) even when the server's copy is just as fresh. That's the safe
+  direction, but it isn't exact.
+- **The skeleton is static.** A shimmer would read as loading more clearly.
