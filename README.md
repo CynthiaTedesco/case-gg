@@ -115,8 +115,12 @@ keep the default order, so rows don't jump around.
   and even a real domain might not exist. Non-Latin domains (e.g. Cyrillic) must be typed in
   their `xn--` form.
 - Errors appear when you leave a field or press Save, not on every keystroke.
-- Cancel clears the form, so the next add starts fresh. If saving fails, the form stays open
-  with everything you typed.
+- **Closing the form: Cancel clears it, tapping outside doesn't.** **Cancel** is a deliberate
+  "never mind", so the form is cleared and the next add starts fresh. Tapping outside the form,
+  pressing Escape on web or the Android back button only hides it: those are often accidental
+  (a stray tap next to the card), and losing a half-typed item to one is annoying. The draft is
+  still there when you reopen the form. If saving fails, the form stays open with everything
+  you typed.
 
 **Prices** are shown in Danish format: `449 kr.`, `1.299 kr.`, `449,50 kr.`
 

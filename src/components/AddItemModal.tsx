@@ -46,8 +46,6 @@ export function AddItemModal({ visible, onClose, onSubmit }: Props) {
   };
   const blur = (field: Field) => () => setTouched((current) => ({ ...current, [field]: true }));
 
-  // Cancel (and Escape / Android back) means "never mind", so it starts the next add fresh.
-  // A failed save is different: the form stays open with the text kept, so nothing is lost.
   const reset = () => {
     setForm(EMPTY_FORM);
     setTouched({});
@@ -55,10 +53,16 @@ export function AddItemModal({ visible, onClose, onSubmit }: Props) {
     setSaveError(null);
   };
 
-  const close = () => {
+  // Two ways out, on purpose. Cancel is a deliberate "never mind", so it clears the form.
+  // Tapping outside, Escape or Android back is often accidental, so it only hides the form and
+  // the draft is still there next time. A failed save keeps everything too.
+  const cancel = () => {
     if (saving) return;
     reset();
     onClose();
+  };
+  const dismiss = () => {
+    if (!saving) onClose();
   };
 
   const submit = async () => {
@@ -78,89 +82,97 @@ export function AddItemModal({ visible, onClose, onSubmit }: Props) {
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={close}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={dismiss}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1 justify-center bg-black/40 px-4"
+        className="flex-1 justify-center bg-black/40"
       >
-        <ScrollView
-          contentContainerClassName="flex-grow justify-center py-8"
-          keyboardShouldPersistTaps="handled"
-        >
-          <View className="w-full max-w-md gap-4 self-center rounded-2xl bg-white p-5">
-            <Text className="text-xl font-bold text-zinc-900" accessibilityRole="header">
-              Add an item
-            </Text>
-
-            <FormField
-              label="What is it?"
-              value={form.title}
-              onChangeText={change('title')}
-              onBlur={blur('title')}
-              error={errorFor('title')}
-              placeholder="Wool blanket, dark green"
-              autoFocus
-              returnKeyType="next"
-              submitBehavior="submit"
-              onSubmitEditing={() => priceRef.current?.focus()}
-            />
-            <FormField
-              inputRef={priceRef}
-              label="Price (kr.)"
-              value={form.price}
-              onChangeText={change('price')}
-              onBlur={blur('price')}
-              error={errorFor('price')}
-              placeholder="449,95"
-              keyboardType="decimal-pad"
-              returnKeyType="next"
-              submitBehavior="submit"
-              onSubmitEditing={() => urlRef.current?.focus()}
-            />
-            <FormField
-              inputRef={urlRef}
-              label="Link (optional)"
-              value={form.url}
-              onChangeText={change('url')}
-              onBlur={blur('url')}
-              error={errorFor('url')}
-              placeholder="shop.dk/item"
-              keyboardType="url"
-              autoCapitalize="none"
-              autoCorrect={false}
-              returnKeyType="done"
-              onSubmitEditing={submit}
-            />
-
-            {saveError ? (
-              <Text className="text-sm text-red-700" accessibilityLiveRegion="polite">
-                {saveError}
+        <ScrollView contentContainerClassName="flex-grow" keyboardShouldPersistTaps="handled">
+          {/* The backdrop: a tap outside the card dismisses the form but keeps the draft. */}
+          <Pressable
+            accessible={false}
+            onPress={dismiss}
+            className="flex-grow justify-center px-4 py-8"
+          >
+            {/* Claims touches on the card itself, so tapping its padding doesn't reach the backdrop. */}
+            <View
+              onStartShouldSetResponder={() => true}
+              className="w-full max-w-md gap-4 self-center rounded-2xl bg-white p-5"
+            >
+              <Text className="text-xl font-bold text-zinc-900" accessibilityRole="header">
+                Add an item
               </Text>
-            ) : null}
 
-            <View className="flex-row justify-end gap-2">
-              <Pressable
-                accessibilityRole="button"
-                disabled={saving}
-                onPress={close}
-                className="rounded-xl px-4 py-3 active:opacity-70"
-              >
-                <Text className="font-semibold text-zinc-600">Cancel</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ disabled: saving, busy: saving }}
-                disabled={saving}
-                onPress={submit}
-                className={`flex-row items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 active:opacity-70 ${
-                  saving ? 'opacity-60' : ''
-                }`}
-              >
-                {saving ? <ActivityIndicator size="small" color="#fff" /> : null}
-                <Text className="font-semibold text-white">{saving ? 'Saving…' : 'Save'}</Text>
-              </Pressable>
+              <FormField
+                label="What is it?"
+                value={form.title}
+                onChangeText={change('title')}
+                onBlur={blur('title')}
+                error={errorFor('title')}
+                placeholder="Wool blanket, dark green"
+                autoFocus
+                returnKeyType="next"
+                submitBehavior="submit"
+                onSubmitEditing={() => priceRef.current?.focus()}
+              />
+              <FormField
+                inputRef={priceRef}
+                label="Price (kr.)"
+                value={form.price}
+                onChangeText={change('price')}
+                onBlur={blur('price')}
+                error={errorFor('price')}
+                placeholder="449,95"
+                keyboardType="decimal-pad"
+                returnKeyType="next"
+                submitBehavior="submit"
+                onSubmitEditing={() => urlRef.current?.focus()}
+              />
+              <FormField
+                inputRef={urlRef}
+                label="Link (optional)"
+                value={form.url}
+                onChangeText={change('url')}
+                onBlur={blur('url')}
+                error={errorFor('url')}
+                placeholder="shop.dk/item"
+                keyboardType="url"
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="done"
+                onSubmitEditing={submit}
+              />
+
+              {saveError ? (
+                <Text className="text-sm text-red-700" accessibilityLiveRegion="polite">
+                  {saveError}
+                </Text>
+              ) : null}
+
+              <View className="flex-row justify-end gap-2">
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={saving}
+                  onPress={cancel}
+                  className="rounded-xl px-4 py-3 active:opacity-70"
+                >
+                  <Text className="font-semibold text-zinc-600">Cancel</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ disabled: saving, busy: saving }}
+                  disabled={saving}
+                  onPress={submit}
+                  className={`flex-row items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 active:opacity-70 ${
+                    saving ? 'opacity-60' : ''
+                  }`}
+                >
+                  {saving ? <ActivityIndicator size="small" color="#fff" /> : null}
+                  <Text className="font-semibold text-white">{saving ? 'Saving…' : 'Save'}</Text>
+                </Pressable>
+              </View>
             </View>
-          </View>
+          </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
