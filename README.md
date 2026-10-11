@@ -72,10 +72,10 @@ that the owner can see which gifts are reserved. Hiding that properly needs iden
 _What I'm not happy with_).
 
 **Reservations never say who made them.**
-Since the owner sees the same screen, other people's reservations show as just "Reserved", for
-everyone. No identity is needed for that, because every viewer is treated the same. Your own
-reservations still say "Reserved by you", since the API marks them with the current user. This
-keeps the _who_ from the owner, but not the _what_. It also costs givers some coordination
+This keeps the surprise for everyone. Other people's reservations show as just "Reserved": a
+gift-giver knows the gift is taken, but not who took it. Your own reservations still say
+"Reserved by you", since the API marks them with the current user. No identity is needed for
+this, because every viewer is treated the same. The cost is some coordination between givers
 ("is Mette getting the lamp?"), which I think is the right trade for a gift list.
 
 **Reserving is optimistic; adding isn't.**
