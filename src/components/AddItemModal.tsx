@@ -177,12 +177,15 @@ function FormField({ label, error, inputRef, ...inputProps }: FormFieldProps) {
   return (
     <View className="gap-1">
       <Text className="text-sm font-medium text-zinc-700">{label}</Text>
+      {/* text-[16px], not text-base: text-base also sets a line height, and iOS crops the text of
+          a single-line TextInput with a line height while it's being edited. 16px also stops
+          iOS Safari from zooming in on focus. */}
       <TextInput
         ref={inputRef}
         accessibilityLabel={label}
         accessibilityHint={error}
         placeholderTextColor="#a1a1aa"
-        className={`rounded-xl border bg-white px-3 py-2.5 text-base text-zinc-900 ${
+        className={`rounded-xl border bg-white px-3 py-2.5 text-[16px] text-zinc-900 ${
           error ? 'border-red-600' : 'border-zinc-300'
         }`}
         {...inputProps}
