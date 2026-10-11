@@ -30,12 +30,33 @@ describe('normalizeUrl', () => {
     expect(normalizeUrl('http://shop.dk')).toBe('http://shop.dk');
   });
 
-  it.each(['javascript:alert(1)', 'ftp://shop.dk', 'not a link', 'localhost'])(
-    'rejects %p',
-    (input) => {
-      expect(normalizeUrl(input)).toBeNull();
-    },
-  );
+  it.each([
+    'shop.dk',
+    'www.shop.co.uk/lamp?colour=green#reviews',
+    'my-shop.dk',
+    'blåbær.dk',
+    'xn--blbr-roa.dk',
+    'l.com.ard/s.com', // well-formed; only a list of real TLDs could reject it
+  ])('accepts %p', (input) => {
+    expect(normalizeUrl(input)).toBe(`https://${input}`);
+  });
+
+  it.each([
+    'javascript:alert(1)',
+    'ftp://shop.dk',
+    'not a link',
+    'localhost',
+    'shop.123', // TLD must be letters
+    'a.b', // TLD must be 2+ letters
+    'x..y', // empty part between dots
+    'a_b.com', // _ isn't allowed in host names
+    '-shop.dk', // a part can't start with a hyphen
+    'shop-.dk', // ...or end with one
+    '-.--',
+    'user@shop.dk', // no credentials in shared links
+  ])('rejects %p', (input) => {
+    expect(normalizeUrl(input)).toBeNull();
+  });
 });
 
 describe('validateAddItem', () => {

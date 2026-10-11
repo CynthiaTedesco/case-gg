@@ -23,7 +23,15 @@ export function parsePriceToMinor(raw: string): number | null {
 }
 
 const HAS_SCHEME = /^[a-z][a-z\d+.-]*:\/\//i;
-const HTTP_URL = /^https?:\/\/[^\s/?#]+\.[^\s/?#]+(?:[/?#]\S*)?$/i;
+// Accented Latin letters (æ, ø, å, ä, é…) so Danish domains like blåbær.dk pass. Listed as a
+// range rather than \p{L}, which isn't guaranteed on every engine. Skips × (D7) and ÷ (F7).
+const ACCENTED = '\\u00C0-\\u00D6\\u00D8-\\u00F6\\u00F8-\\u024F';
+// A host part: letters/digits/hyphens, never starting or ending with a hyphen.
+const LABEL = `[a-z0-9${ACCENTED}](?:[a-z0-9${ACCENTED}-]*[a-z0-9${ACCENTED}])?`;
+// Top-level domain: 2+ letters, or the xn-- encoded form of an international one.
+const TLD = `(?:[a-z${ACCENTED}]{2,63}|xn--[a-z0-9-]+)`;
+// Checks the shape only. "l.com.ard" passes because only a list of real TLDs could reject it.
+const HTTP_URL = new RegExp(`^https?://(?:${LABEL}\\.)+${TLD}(?::\\d{1,5})?(?:[/?#]\\S*)?$`, 'i');
 
 /**
  * Empty → undefined (the field is optional). "shop.dk/lamp" → "https://shop.dk/lamp".

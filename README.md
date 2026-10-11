@@ -108,7 +108,12 @@ keep the default order, so rows don't jump around.
   than 0 and at most 100.000 kr. (catches typos). Thousands separators are rejected on purpose:
   "1.299" is 1299 kr. in Danish notation but 1.299 kr. in English.
 - **URL:** optional. A missing scheme gets `https://` ("shop.dk/lamp" works). Only http(s) is
-  accepted, which also keeps `javascript:` links off the page.
+  accepted, which also keeps `javascript:` links off the page. The host must be well-formed:
+  parts made of letters, digits and hyphens, and a top-level domain of 2+ letters. Accented
+  Latin letters are allowed, so Danish domains like `blåbær.dk` work. This checks the _shape_
+  only: `l.com.ard` passes because rejecting it would need the list of real top-level domains,
+  and even a real domain might not exist. Non-Latin domains (e.g. Cyrillic) must be typed in
+  their `xn--` form.
 - Errors appear when you leave a field or press Save, not on every keystroke.
 - Cancel clears the form, so the next add starts fresh. If saving fails, the form stays open
   with everything you typed.
