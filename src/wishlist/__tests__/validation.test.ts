@@ -108,9 +108,19 @@ describe('normalizeUrl', () => {
 
 describe('validateAddItem', () => {
   it('returns a clean item for valid input', () => {
-    expect(validateAddItem({ title: '  Cast   iron pan ', price: '599', url: '' })).toEqual({
+    expect(
+      validateAddItem({ title: '  Cast   iron pan ', price: '599', url: ' shop.dk/pan ' }),
+    ).toEqual({
       ok: true,
-      value: { title: 'Cast iron pan', priceMinor: 59900 },
+      value: { title: 'Cast iron pan', priceMinor: 59900, url: 'https://shop.dk/pan' },
+    });
+  });
+
+  it('requires a link, as the API does', () => {
+    const result = validateAddItem({ title: 'Cast iron pan', price: '599', url: '  ' });
+    expect(result).toEqual({
+      ok: false,
+      errors: { url: 'Add a link so people can find the item.' },
     });
   });
 

@@ -5,7 +5,8 @@ export const PRICE_MAX_MINOR = 100_000_00; // 100.000 kr.
 
 export type AddItemForm = { title: string; price: string; url: string };
 export type AddItemErrors = Partial<Record<keyof AddItemForm, string>>;
-export type NewItem = Pick<WishItem, 'title' | 'priceMinor' | 'url'>;
+/** AddItemInput from the API docs: all three fields are required, the link included. */
+export type NewItem = Required<Pick<WishItem, 'title' | 'priceMinor' | 'url'>>;
 
 export type ValidationResult = { ok: true; value: NewItem } | { ok: false; errors: AddItemErrors };
 
@@ -87,7 +88,7 @@ const TLD = `(?:[a-z${ACCENTED}]{2,63}|xn--[a-z0-9-]+)`;
 const HTTP_URL = new RegExp(`^https?://(?:${LABEL}\\.)+${TLD}(?::\\d{1,5})?(?:[/?#]\\S*)?$`, 'i');
 
 /**
- * Empty → undefined (the field is optional). "shop.dk/lamp" → "https://shop.dk/lamp".
+ * Empty → undefined (validateAddItem reports it as missing). "shop.dk/lamp" → "https://shop.dk/lamp".
  * Anything that isn't an http(s) link → null. That also keeps javascript: links off the page.
  */
 export function normalizeUrl(raw: string): string | null | undefined {
@@ -110,10 +111,11 @@ export function validateAddItem(form: AddItemForm): ValidationResult {
   if (priceError) errors.price = priceError;
 
   const url = normalizeUrl(form.url);
-  if (url === null) errors.url = "That doesn't look like a web link (e.g. shop.dk/item).";
+  if (url === undefined) errors.url = 'Add a link so people can find the item.';
+  else if (url === null) errors.url = "That doesn't look like a web link (e.g. shop.dk/item).";
 
-  if (priceMinor === null || url === null || Object.keys(errors).length > 0) {
+  if (priceMinor === null || !url || Object.keys(errors).length > 0) {
     return { ok: false, errors };
   }
-  return { ok: true, value: url ? { title, priceMinor, url } : { title, priceMinor } };
+  return { ok: true, value: { title, priceMinor, url } };
 }

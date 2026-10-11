@@ -130,7 +130,7 @@ export function AddItemModal({ visible, onClose, onSubmit }: Props) {
               />
               <FormField
                 inputRef={urlRef}
-                label="Link (optional)"
+                label="Link"
                 value={form.url}
                 onChangeText={change('url')}
                 onBlur={blur('url')}

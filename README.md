@@ -45,6 +45,22 @@ src/components/                ItemRow, Toolbar, AddItemModal, Toast, loading/er
 State is one `useReducer`. The reducer is a pure function, so the tricky parts (rollback, conflicts,
 a stale poll arriving late) are unit-tested without rendering anything.
 
+## Where the API docs and `api.ts` disagree
+
+`api.ts` is left unchanged, so where it differs from the API docs, one rule decides: **the docs
+win for what the app sends, and `api.ts` wins for what the app reads.** The docs are the contract
+a real backend would enforce. `api.ts` is what actually runs, so the app has to cope with
+whatever it returns.
+
+| Where            | API docs                                  | `api.ts`                                                             | Who wins and what the app does                                                                                                          |
+| ---------------- | ----------------------------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `url`            | Required on `AddItemInput` and `WishItem` | Optional (`url?`). Seed items 2–6 have none                          | **Docs** for adding: the form requires a link. **`api.ts`** for showing: a row without a link just hides "View item ↗".                 |
+| `imageUrl`       | Not a field                               | Optional field, never set                                            | **Docs**: the app never sends it. A row would show the image if one ever came back, which costs nothing.                                |
+| `getItems`       | Not documented                            | Loads the list, fails ~10% of calls                                  | **`api.ts`**: it's the only way to load the list. Its failures are treated like the documented `Error("Network error")`: safe to retry. |
+| `id`             | UUID v4                                   | Seed items use `'1'`–`'6'`, new items get UUIDs                      | **`api.ts`**: ids are treated as opaque strings, never parsed or checked.                                                               |
+| `id`, `currency` | Set by the service                        | `addItem` spreads the input last, so extra keys could overwrite them | **Docs**: validation builds a fresh `{ title, priceMinor, url }`, so nothing else is ever sent.                                         |
+| `priceMinor`     | Øre                                       | Commented as "cent"                                                  | **Docs**: only the comment is wrong. Prices are øre everywhere.                                                                         |
+
 ## Decisions where the brief was ambiguous
 
 **Who is this for? One shared screen for the owner and the gift-givers.**
@@ -102,10 +118,9 @@ keep the default order, so rows don't jump around.
 **Add-item validation**
 
 - **Title:** required, trimmed, repeated spaces collapsed, max 100 characters.
-- **Price:** required, because the brief marks only the URL as optional and the API's
-  `priceMinor` is non-optional. Typed in kroner with `,` or `.` before the øre ("449", "449,95",
-  "449.95 kr"), up to 2 decimals, converted to øre with integer maths. Must be more than 0 and
-  at most 100000 kr. (catches typos).
+- **Price:** required, because the API docs mark `priceMinor` as required. Typed in kroner with
+  `,` or `.` before the øre ("449", "449,95", "449.95 kr"), up to 2 decimals, converted to øre
+  with integer maths. Must be more than 0 and at most 100000 kr. (catches typos).
   - **The number keyboard is only a hint.** On a phone the field opens a number pad with a
     single separator key (a comma in Danish, a dot in English), but pasting, web and physical
     keyboards can send anything. So validation handles any text, and the messages cover cases
@@ -119,7 +134,9 @@ keep the default order, so rows don't jump around.
   - **The error names the actual problem**, in the separator the person typed: someone on a
     comma-only number pad is never told to type a dot. With both a format and a size problem,
     the message names both, so nobody fixes one only to hit the other.
-- **URL:** optional. A missing scheme gets `https://` ("shop.dk/lamp" works). Only http(s) is
+- **URL:** required. The brief calls it optional, but the API docs make `url` required on both
+  `AddItemInput` and `WishItem`, so the form follows the API (see "Where the API docs and
+  `api.ts` disagree"). A missing scheme gets `https://` ("shop.dk/lamp" works). Only http(s) is
   accepted, which also keeps `javascript:` links off the page. The host must be well-formed:
   parts made of letters, digits and hyphens, and a top-level domain of 2+ letters. Accented
   Latin letters are allowed, so Danish domains like `blåbær.dk` work. This checks the _shape_
