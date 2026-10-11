@@ -6,25 +6,33 @@ import type { WishItem } from '../api';
 import { AddItemModal } from '../components/AddItemModal';
 import { ItemRow } from '../components/ItemRow';
 import { EmptyList, LoadError, SkeletonList } from '../components/ListStates';
+import { RolePicker } from '../components/RolePicker';
 import { Toast } from '../components/Toast';
 import { Toolbar } from '../components/Toolbar';
 import { countUnreserved, visibleItems, type PriceSort } from './selectors';
 import { useWishlist } from './useWishlist';
+import { viewFor, type ViewerRole } from './viewerRole';
 import type { RetryAction } from './wishlistReducer';
 
 const NO_IDS: ReadonlySet<string> = new Set();
+/** Before a role is picked nothing role-specific is on screen, so these are never seen. */
+const NO_ROLE_VIEW = { canAdd: false, showReservations: false };
 
 export function WishlistScreen() {
   const { state, refresh, reserve, unreserve, addItem, dismissNotice } = useWishlist();
+  const [role, setRole] = useState<ViewerRole | null>(null);
+  const { canAdd, showReservations } = role ? viewFor(role) : NO_ROLE_VIEW;
   const [onlyUnreserved, setOnlyUnreserved] = useState(false);
   const [sort, setSort] = useState<PriceSort>('none');
   // Items you reserved since the filter was last changed. They stay put instead of vanishing.
   const [keepVisible, setKeepVisible] = useState(NO_IDS);
   const [adding, setAdding] = useState(false);
 
+  // Without reservations on screen, the filter would hide items for no visible reason.
+  const filterOn = showReservations && onlyUnreserved;
   const items = useMemo(
-    () => visibleItems(state.items, { onlyUnreserved, sort, keepVisible }),
-    [state.items, onlyUnreserved, sort, keepVisible],
+    () => visibleItems(state.items, { onlyUnreserved: filterOn, sort, keepVisible }),
+    [state.items, filterOn, sort, keepVisible],
   );
 
   const toggleUnreserved = useCallback(() => {
@@ -54,14 +62,15 @@ export function WishlistScreen() {
       <ItemRow
         item={item}
         pending={item.id in state.pending}
+        showReservations={showReservations}
         onReserve={handleReserve}
         onUnreserve={unreserve}
       />
     ),
-    [state.pending, handleReserve, unreserve],
+    [state.pending, showReservations, handleReserve, unreserve],
   );
 
-  const ready = state.status === 'ready';
+  const ready = state.status === 'ready' && role !== null;
 
   return (
     <SafeAreaView className="flex-1 bg-zinc-100" edges={['top', 'left', 'right']}>
@@ -72,9 +81,11 @@ export function WishlistScreen() {
               Wishlist
             </Text>
             <Text className="text-zinc-500">
-              {ready
-                ? `${countUnreserved(state.items)} of ${state.items.length} still available`
-                : 'Pick a gift and reserve it so nobody doubles up.'}
+              {!ready
+                ? 'Pick a gift and reserve it so nobody doubles up.'
+                : showReservations
+                  ? `${countUnreserved(state.items)} of ${state.items.length} still available`
+                  : `${state.items.length} ${state.items.length === 1 ? 'item' : 'items'} on your list`}
             </Text>
           </View>
           {ready ? (
@@ -92,24 +103,28 @@ export function WishlistScreen() {
                   <Text className="text-lg text-zinc-700">↻</Text>
                 )}
               </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => setAdding(true)}
-                className="h-11 justify-center rounded-xl bg-indigo-600 px-4 active:opacity-70"
-              >
-                <Text className="font-semibold text-white">+ Add</Text>
-              </Pressable>
+              {canAdd ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setAdding(true)}
+                  className="h-11 justify-center rounded-xl bg-indigo-600 px-4 active:opacity-70"
+                >
+                  <Text className="font-semibold text-white">+ Add</Text>
+                </Pressable>
+              ) : null}
             </View>
           ) : null}
         </View>
 
-        {state.status === 'loading' ? <SkeletonList /> : null}
-        {state.status === 'error' ? (
+        {role && state.status === 'loading' ? <SkeletonList /> : null}
+        {!role ? <RolePicker onPick={setRole} /> : null}
+        {role && state.status === 'error' ? (
           <LoadError message={state.error ?? 'Something went wrong'} onRetry={refresh} />
         ) : null}
         {ready ? (
           <>
             <Toolbar
+              showReservedFilter={showReservations}
               onlyUnreserved={onlyUnreserved}
               onToggleUnreserved={toggleUnreserved}
               sort={sort}
@@ -119,7 +134,9 @@ export function WishlistScreen() {
               data={items}
               keyExtractor={(item) => item.id}
               renderItem={renderItem}
-              ListEmptyComponent={<EmptyList filtered={onlyUnreserved && state.items.length > 0} />}
+              ListEmptyComponent={
+                <EmptyList filtered={filterOn && state.items.length > 0} canAdd={canAdd} />
+              }
               refreshControl={<RefreshControl refreshing={state.refreshing} onRefresh={refresh} />}
               contentContainerClassName="pb-28"
             />

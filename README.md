@@ -23,9 +23,9 @@ npm run lint
 npm run typecheck
 ```
 
-**Things to try:** reserve something and see it flip instantly. Wait 10–20 s and other people
-(Mette, Jonas, Farmor) will start reserving and releasing items. Reload a few times to hit the
-API's 10 % load failure.
+**Things to try:** the first screen asks whether the list is yours. Pick "No, I'm giving a gift"
+to reserve things. Reserve something and see it flip instantly. Wait 10–20 s and other people (Mette, Jonas, Farmor) will
+start reserving and releasing items. Reload a few times to hit the API's 10 % load failure.
 
 ## How it's built
 
@@ -37,9 +37,11 @@ src/wishlist/
   useWishlist.ts               calls the API, dispatches to the reducer, polls
   selectors.ts                 filter + sort as pure functions of the list
   validation.ts                add-item form rules
+  viewerRole.ts                owner / gift-giver: what each one sees, as a pure function
   format.ts                    price and name formatting
   WishlistScreen.tsx           the screen
-src/components/                ItemRow, Toolbar, AddItemModal, Toast, loading/error/empty states
+src/components/                ItemRow, Toolbar, AddItemModal, RolePicker, Toast,
+                               loading/error/empty states
 ```
 
 State is one `useReducer`. The reducer is a pure function, so the tricky parts (rollback, conflicts,
@@ -63,13 +65,20 @@ whatever it returns.
 
 ## Decisions where the brief was ambiguous
 
-**Who is this for? One shared screen for the owner and the gift-givers.**
+**Who is this for? The person says so, and gets an owner or a gift-giver view.**
 The brief contradicts itself a little. It says the _owner_ adds items and _friends and family_
 reserve them, asks for an app that lets a _gift-giver_ use the list, and then requires adding
-items. With authentication and routing out of scope, the app can't tell who is looking, so
-everyone gets the same screen: the owner uses **+ Add**, gift-givers use **Reserve**. The cost is
-that the owner can see which gifts are reserved. Hiding that properly needs identity (see
-_What I'm not happy with_).
+items. With authentication and routing out of scope, the app can't tell who is looking, so the
+first screen asks: "Is this your wishlist?".
+
+- **Owner:** sees **+ Add**, and nothing about reservations: no Reserve buttons, no "Reserved"
+  labels or dimmed rows, no "Only unreserved" filter, and "6 items on your list" instead of
+  "3 of 6 still available". The surprise survives.
+- **Gift-giver:** sees and makes reservations, and has no **+ Add**.
+- What each role sees is one pure function (`viewFor`), and components get its flags
+  (`canAdd`, `showReservations`), never the role, so they don't need to know roles exist.
+
+This is a convenience, not security (see _What I'm not happy with_).
 
 **Reservations never say who made them.**
 This keeps the surprise for everyone. Other people's reservations show as just "Reserved": a
@@ -169,11 +178,9 @@ odd.
 
 ## What I'd do with more time
 
-- **Separate owner and gift-giver views.** Even without real accounts, an owner view would hide
-  reservations entirely, with **+ Add** shown only there, and a giver view would hide **+ Add**.
-  This is still possible on a single page, since it's one piece of state deciding what's shown.
-  With real identity (separate owner and giver share links, or login), the server could also
-  enforce it, so only the owner can add items.
+- **Enforce the roles on the server.** With real identity (separate owner and giver share
+  links, or login), the role would come from the link instead of a question, and the server
+  would make sure only the owner adds items and never sends the owner reservations.
 - **TanStack Query** for the data layer. It provides caching, retries, focus refetching and
   optimistic updates. I wrote it by hand here so the mechanics are visible and testable. In a
   production app I'd use the library rather than maintain my own.
@@ -188,11 +195,10 @@ odd.
 
 ## What I'm not happy with
 
-- **There is no identity, so the surprise can be spoiled.** The owner sees the same screen as
-  the givers, so they can see which gifts are reserved, even though names are hidden. Nothing
-  stops a gift-giver from adding items to someone else's list either. Both come down to the app
-  not knowing who is looking, which needs login or per-role links. Both were out of scope for
-  this exercise.
+- **The roles are on the honour system.** The owner view hides reservations, but the data still
+  reaches the device, and anyone can answer the first question either way. A gift-giver can
+  say the list is theirs and add items too. Both come down to the app not knowing who is
+  looking, which needs login or per-role links, and both were out of scope for this exercise.
 - **Rows reserved by others still vanish under the filter.** Mine stay put, but if someone else
   reserves something while you're looking at "Only unreserved", it disappears without explanation. A brief
   "just reserved" state before removal would be kinder.

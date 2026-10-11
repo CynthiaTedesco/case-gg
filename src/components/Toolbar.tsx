@@ -3,6 +3,8 @@ import { Pressable, Text, View } from 'react-native';
 import type { PriceSort } from '../wishlist/selectors';
 
 type Props = {
+  /** False hides the "Only unreserved" chip, for people who mustn't see reservations. */
+  showReservedFilter: boolean;
   onlyUnreserved: boolean;
   onToggleUnreserved: () => void;
   sort: PriceSort;
@@ -15,15 +17,25 @@ const SORT_OPTIONS: { value: PriceSort; label: string; a11y: string }[] = [
   { value: 'desc', label: 'Price ↓', a11y: 'Price, high to low' },
 ];
 
-export function Toolbar({ onlyUnreserved, onToggleUnreserved, sort, onChangeSort }: Props) {
+export function Toolbar({
+  showReservedFilter,
+  onlyUnreserved,
+  onToggleUnreserved,
+  sort,
+  onChangeSort,
+}: Props) {
   return (
     <View className="flex-row flex-wrap items-center justify-between gap-2 px-4 pb-3">
-      <Chip
-        label="Only unreserved"
-        selected={onlyUnreserved}
-        role="checkbox"
-        onPress={onToggleUnreserved}
-      />
+      {showReservedFilter ? (
+        <Chip
+          label="Only unreserved"
+          selected={onlyUnreserved}
+          role="checkbox"
+          onPress={onToggleUnreserved}
+        />
+      ) : (
+        <View />
+      )}
       <View className="flex-row gap-1" accessibilityRole="radiogroup" accessibilityLabel="Sort">
         {SORT_OPTIONS.map((option) => (
           <Chip

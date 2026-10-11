@@ -35,7 +35,7 @@ export function LoadError({ message, onRetry }: { message: string; onRetry: () =
   );
 }
 
-export function EmptyList({ filtered }: { filtered: boolean }) {
+export function EmptyList({ filtered, canAdd }: { filtered: boolean; canAdd: boolean }) {
   return (
     <View className="mx-4 items-center gap-1 rounded-2xl bg-white p-6">
       <Text className="text-lg font-semibold text-zinc-900">
@@ -44,7 +44,9 @@ export function EmptyList({ filtered }: { filtered: boolean }) {
       <Text className="text-center text-zinc-500">
         {filtered
           ? 'Turn off “Only unreserved” to see the whole list.'
-          : 'Add the first item with the button above.'}
+          : canAdd
+            ? 'Add the first item with the button above.'
+            : 'Nothing has been added yet. Check back later.'}
       </Text>
     </View>
   );

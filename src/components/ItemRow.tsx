@@ -8,18 +8,27 @@ type Props = {
   item: WishItem;
   /** The reservation change hasn't been confirmed by the server yet. */
   pending: boolean;
+  /** False shows the item as if nobody had reserved it, with no reserve buttons. */
+  showReservations: boolean;
   onReserve: (id: string) => void;
   onUnreserve: (id: string) => void;
 };
 
-export const ItemRow = memo(function ItemRow({ item, pending, onReserve, onUnreserve }: Props) {
+export const ItemRow = memo(function ItemRow({
+  item,
+  pending,
+  showReservations,
+  onReserve,
+  onUnreserve,
+}: Props) {
   const reservedByMe = item.reservedBy === CURRENT_USER;
   const reservedByOther = item.reservedBy !== null && !reservedByMe;
+  const reservedLabel = showReservations && item.reservedBy;
 
   return (
     <View
       className={`mx-4 mb-3 flex-row items-center gap-3 rounded-2xl bg-white p-4 ${
-        reservedByOther ? 'opacity-60' : ''
+        showReservations && reservedByOther ? 'opacity-60' : ''
       }`}
     >
       {item.imageUrl ? (
@@ -36,7 +45,7 @@ export const ItemRow = memo(function ItemRow({ item, pending, onReserve, onUnres
           {formatPrice(item.priceMinor, item.currency)}
         </Text>
         <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1">
-          {item.reservedBy ? (
+          {reservedLabel ? (
             <Text className={`text-sm ${reservedByMe ? 'text-emerald-700' : 'text-zinc-500'}`}>
               {/* Never who: the owner sees this same screen (see README). */}
               {reservedByMe ? '✓ Reserved by you' : 'Reserved'}
@@ -55,7 +64,7 @@ export const ItemRow = memo(function ItemRow({ item, pending, onReserve, onUnres
         </View>
       </View>
 
-      {reservedByOther ? null : reservedByMe ? (
+      {!showReservations || reservedByOther ? null : reservedByMe ? (
         <ActionButton
           label="Undo"
           variant="secondary"
