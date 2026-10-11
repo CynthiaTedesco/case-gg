@@ -39,3 +39,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# editor and assistant settings
+.vscode/
+.claude/
