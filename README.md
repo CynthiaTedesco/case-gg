@@ -10,6 +10,7 @@ Requires a current Node LTS and npm.
 
 ```bash
 npm install
+npx expo start     # dev server: press w (web), i (iOS) or a (Android), or scan the QR code
 npm run web        # opens in the browser (the quickest way to review)
 npm run ios        # iOS simulator, or scan the QR code with Expo Go
 npm run android    # Android emulator, or scan the QR code with Expo Go
@@ -22,32 +23,6 @@ npm test           # unit tests: validation, filter/sort, and the state reducer
 npm run lint
 npm run typecheck
 ```
-
-**Things to try:** the first screen asks whether the list is yours. Pick "No, I'm giving a gift"
-to reserve things, and use **Switch view** under the title to see the owner's side. Reserve
-something and see it flip instantly. Wait 10–20 s and other people (Mette, Jonas, Farmor) will
-start reserving and releasing items. Reload a few times to hit the API's 10 % load failure.
-
-## How it's built
-
-```
-src/api.ts                     the provided mock API (unchanged)
-src/polyfills.ts               crypto.randomUUID for native (see below)
-src/wishlist/
-  wishlistReducer.ts           all state transitions: load, optimistic reserve, rollback, merge
-  useWishlist.ts               calls the API, dispatches to the reducer, polls
-  selectors.ts                 filter + sort as pure functions of the list
-  validation.ts                add-item form rules
-  viewerRole.ts                owner / gift-giver: what each one sees, as a pure function
-  useViewerRole.ts             the picked role, remembered with AsyncStorage
-  format.ts                    price and name formatting
-  WishlistScreen.tsx           the screen
-src/components/                ItemRow, Toolbar, AddItemModal, RolePicker, Toast, confirm,
-                               loading/error/empty states
-```
-
-State is one `useReducer`. The reducer is a pure function, so the tricky parts (rollback, conflicts,
-a stale poll arriving late) are unit-tested without rendering anything.
 
 ## Decisions where the brief was ambiguous
 
