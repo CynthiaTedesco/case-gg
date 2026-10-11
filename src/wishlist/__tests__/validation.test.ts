@@ -1,4 +1,4 @@
-import { normalizeUrl, parsePriceToMinor, validateAddItem } from '../validation';
+import { normalizeUrl, parsePriceToMinor, priceProblem, validateAddItem } from '../validation';
 
 describe('parsePriceToMinor', () => {
   it.each([
@@ -6,13 +6,60 @@ describe('parsePriceToMinor', () => {
     ['449,5', 44950],
     ['449.95', 44995],
     [' 449,95 kr. ', 44995],
+    ['449,', 44900], // a stray comma from the number pad
+    [',95', 95],
     ['0,29', 29], // the float trap: parseFloat('0.29') * 100 !== 29
   ])('parses %p as %p øre', (input, expected) => {
     expect(parsePriceToMinor(input)).toBe(expected);
   });
 
-  it.each(['', 'abc', '-10', '1.299,00', '12,345', '1e3'])('rejects %p', (input) => {
+  it.each(['', ',', 'abc', '-10', '1.299,00', '12,345', '1e3'])('rejects %p', (input) => {
     expect(parsePriceToMinor(input)).toBeNull();
+  });
+});
+
+describe('priceProblem', () => {
+  it.each(['449', '449,5', '449.95 kr', '449,', ',95', '100000'])('accepts %p', (input) => {
+    expect(priceProblem(input)).toBeUndefined();
+  });
+
+  it.each([
+    ['', /add a price/i],
+    [',', /type the price/i],
+    ['-10', /negative/i],
+    ['12 kroner', /only digits, with a comma .* 449,95/i],
+    ['12.5 kroner', /only digits, with a dot .* 449\.95/i],
+    ['1.299,95', /thousands separator \(e\.g\. 1299,95\)/i], // pasted from a Danish shop
+    ['1,299.95', /thousands separator/i], // pasted from an English one
+    ['1,299,95', /only one comma, before the øre \(e\.g\. 1299,95\)/i], // typed on the number pad
+    ['1.299', /write 1299, not 1\.299/i], // Danish thousands, not 3 decimals
+    ['449,9575', /at most 2 decimals: 449,95, not 449,9575/i],
+    ['449.9575', /at most 2 decimals: 449\.95, not 449\.9575/i],
+    ['100000,01', /max is 100000 kr/i],
+    ['0', /more than 0/i],
+    ['0,', /more than 0/i],
+  ])('explains what is wrong with %p', (input, message) => {
+    expect(priceProblem(input)).toMatch(message);
+  });
+
+  it('names both problems when there are two', () => {
+    expect(priceProblem('999999999999,435646476')).toMatch(
+      /2 decimals, and no more than 100000 kr/i,
+    );
+  });
+
+  it('never mentions a dot to someone who only typed commas', () => {
+    for (const input of ['1,299,95', '449,9575', '12 kroner', ',', '999999999999,435646476']) {
+      expect(priceProblem(input)).not.toMatch(/\bdot\b|\d\.\d/);
+    }
+  });
+
+  it('agrees with the parser on what is a valid price', () => {
+    for (const input of ['449', '449,', ',95', '0,01', '1.299,95', '1.299', '449,957', 'abc']) {
+      const parsed = parsePriceToMinor(input);
+      const valid = parsed !== null && parsed > 0 && parsed <= 100_000_00;
+      expect(priceProblem(input) === undefined).toBe(valid);
+    }
   });
 });
 

@@ -103,10 +103,22 @@ keep the default order, so rows don't jump around.
 
 - **Title:** required, trimmed, repeated spaces collapsed, max 100 characters.
 - **Price:** required, because the brief marks only the URL as optional and the API's
-  `priceMinor` is non-optional. Typed in kroner with `,` or `.` as decimal separator ("449",
-  "449,95", "449.95 kr"), up to 2 decimals, converted to øre with integer maths. Must be more
-  than 0 and at most 100.000 kr. (catches typos). Thousands separators are rejected on purpose:
-  "1.299" is 1299 kr. in Danish notation but 1.299 kr. in English.
+  `priceMinor` is non-optional. Typed in kroner with `,` or `.` before the øre ("449", "449,95",
+  "449.95 kr"), up to 2 decimals, converted to øre with integer maths. Must be more than 0 and
+  at most 100000 kr. (catches typos).
+  - **The number keyboard is only a hint.** On a phone the field opens a number pad with a
+    single separator key (a comma in Danish, a dot in English), but pasting, web and physical
+    keyboards can send anything. So validation handles any text, and the messages cover cases
+    a number pad can't produce, like letters or a minus sign.
+  - **Obvious input is accepted, not argued with:** "449," is 449 kr. and ",95" is 0,95 kr. A
+    stray comma is easy to tap on a number pad.
+  - **Mixed or repeated separators are rejected, not guessed.** A price pasted from a Danish shop
+    ("1.299,95") and an English one ("1,299.95") use opposite separators for the same amount,
+    and a wrong guess is off by 100× or more. A single separator followed by exactly 3 digits
+    ("1.299") is treated as a thousands separator, so the message suggests 1299, not 1.29.
+  - **The error names the actual problem**, in the separator the person typed: someone on a
+    comma-only number pad is never told to type a dot. With both a format and a size problem,
+    the message names both, so nobody fixes one only to hit the other.
 - **URL:** optional. A missing scheme gets `https://` ("shop.dk/lamp" works). Only http(s) is
   accepted, which also keeps `javascript:` links off the page. The host must be well-formed:
   parts made of letters, digits and hyphens, and a top-level domain of 2+ letters. Accented
