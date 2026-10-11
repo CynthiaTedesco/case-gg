@@ -15,7 +15,7 @@ const OPTIONS: { role: ViewerRole; label: string; detail: string }[] = [
   },
 ];
 
-/** The first screen: decides which view the person gets. */
+/** The first screen: decides which view the person gets. Asked once, then remembered. */
 export function RolePicker({ onPick }: { onPick: (role: ViewerRole) => void }) {
   return (
     <View className="mx-4 gap-3 rounded-2xl bg-white p-6">

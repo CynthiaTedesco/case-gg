@@ -10,8 +10,9 @@ import { RolePicker } from '../components/RolePicker';
 import { Toast } from '../components/Toast';
 import { Toolbar } from '../components/Toolbar';
 import { countUnreserved, visibleItems, type PriceSort } from './selectors';
+import { useViewerRole } from './useViewerRole';
 import { useWishlist } from './useWishlist';
-import { viewFor, type ViewerRole } from './viewerRole';
+import { viewFor } from './viewerRole';
 import type { RetryAction } from './wishlistReducer';
 
 const NO_IDS: ReadonlySet<string> = new Set();
@@ -20,7 +21,7 @@ const NO_ROLE_VIEW = { canAdd: false, showReservations: false };
 
 export function WishlistScreen() {
   const { state, refresh, reserve, unreserve, addItem, dismissNotice } = useWishlist();
-  const [role, setRole] = useState<ViewerRole | null>(null);
+  const { role, loading: roleLoading, setRole } = useViewerRole();
   const { canAdd, showReservations } = role ? viewFor(role) : NO_ROLE_VIEW;
   const [onlyUnreserved, setOnlyUnreserved] = useState(false);
   const [sort, setSort] = useState<PriceSort>('none');
@@ -116,8 +117,8 @@ export function WishlistScreen() {
           ) : null}
         </View>
 
-        {role && state.status === 'loading' ? <SkeletonList /> : null}
-        {!role ? <RolePicker onPick={setRole} /> : null}
+        {roleLoading || (role && state.status === 'loading') ? <SkeletonList /> : null}
+        {!roleLoading && !role ? <RolePicker onPick={setRole} /> : null}
         {role && state.status === 'error' ? (
           <LoadError message={state.error ?? 'Something went wrong'} onRetry={refresh} />
         ) : null}

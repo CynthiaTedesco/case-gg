@@ -38,6 +38,7 @@ src/wishlist/
   selectors.ts                 filter + sort as pure functions of the list
   validation.ts                add-item form rules
   viewerRole.ts                owner / gift-giver: what each one sees, as a pure function
+  useViewerRole.ts             the picked role, remembered with AsyncStorage
   format.ts                    price and name formatting
   WishlistScreen.tsx           the screen
 src/components/                ItemRow, Toolbar, AddItemModal, RolePicker, Toast,
@@ -69,7 +70,8 @@ whatever it returns.
 The brief contradicts itself a little. It says the _owner_ adds items and _friends and family_
 reserve them, asks for an app that lets a _gift-giver_ use the list, and then requires adding
 items. With authentication and routing out of scope, the app can't tell who is looking, so the
-first screen asks: "Is this your wishlist?".
+first screen asks: "Is this your wishlist?". The answer is remembered (AsyncStorage, so it works
+on iOS, Android and web, and in Expo Go).
 
 - **Owner:** sees **+ Add**, and nothing about reservations: no Reserve buttons, no "Reserved"
   labels or dimmed rows, no "Only unreserved" filter, and "6 items on your list" instead of
@@ -162,9 +164,10 @@ keep the default order, so rows don't jump around.
 
 **Prices** are shown in Danish format: `449 kr.`, `1.299 kr.`, `449,50 kr.`
 
-**Filter and sort reset on reload.** That's deliberate: the mock API keeps its data in memory,
-so a reload resets the list itself too. Saving the view settings while the data resets would be
-odd.
+**Filter and sort reset on reload; the role doesn't.** The mock API keeps its data in memory, so
+a reload resets the list itself too, and saving filter and sort while the data resets would be
+odd. The role is different: being asked "Is this your wishlist?" after every reload would be
+annoying, and the answer doesn't depend on the data. If storage fails, the app just asks again.
 
 **Platform notes**
 
